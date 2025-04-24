@@ -50,32 +50,47 @@ class CartController extends Controller
 
     public function checkout()
     {
-        $carts = Cart::with('product')
-            ->where('user_id', Auth::id())
-            ->get();
-
+        $carts = Cart::with('product')->where('user_id', Auth::id())->get();
+    
         // Total harga
         $total = $carts->sum(fn($cart) => $cart->product->price * $cart->quantity);
-
+    
         // Format pesan untuk WhatsApp
         $message = "Checkout Produk:\n";
+    
         foreach ($carts as $cart) {
-            $message .= "Produk: {$cart->product->name}, Jumlah: {$cart->quantity}, Harga: Rp " . number_format($cart->product->price) . "\n";
+            $product = $cart->product;
+    
+            // Cek apakah stok cukup
+            if ($product->stock < $cart->quantity) {
+                return redirect()->back()->with('error', "Stok produk '{$product->name}' tidak mencukupi.");
+            }
+    
+            // Kurangi stok
+            $product->stock -= $cart->quantity;
+            $product->save();
+    
+            $message .= "Produk: {$product->name}, Jumlah: {$cart->quantity}, Harga: Rp " . number_format($product->price) . "\n";
         }
+    
         $message .= "Total: Rp " . number_format($total) . "\n\n";
         $message .= "Silakan lakukan pembayaran melalui WhatsApp.";
-
+    
+        // Kosongkan keranjang setelah checkout berhasil
+        Cart::where('user_id', Auth::id())->delete();
+    
         // Encode pesan untuk URL
         $encodedMessage = urlencode($message);
-
-        // Nomor WhatsApp (gunakan nomor WhatsApp yang bisa dihubungi)
-        $whatsappNumber = '6281215639028'; // Ganti dengan nomor WhatsApp yang sesuai
-
+    
+        // Nomor WhatsApp
+        $whatsappNumber = '6281215639028';
+    
         // Link ke WhatsApp
         $whatsappLink = "https://wa.me/{$whatsappNumber}?text={$encodedMessage}";
-
+    
         return redirect()->to($whatsappLink);
     }
+    
 
     public function destroy($cartId)
     {
