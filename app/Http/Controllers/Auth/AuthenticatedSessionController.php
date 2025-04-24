@@ -28,6 +28,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Mengecek apakah user memiliki role 'admin'
+        if (Auth::user()->role === 'admin') {
+            // Jika admin, redirect ke halaman admin
+            return redirect()->route('admin.products.index');
+        }
+
+        // Jika bukan admin, redirect ke halaman dashboard biasa
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
@@ -45,3 +52,4 @@ class AuthenticatedSessionController extends Controller
         return redirect('/');
     }
 }
+
