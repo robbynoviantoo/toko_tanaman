@@ -76,4 +76,27 @@ class CartController extends Controller
 
         return redirect()->to($whatsappLink);
     }
+
+    public function destroy($cartId)
+    {
+        $cart = Cart::findOrFail($cartId);
+        $cart->delete();
+
+        return redirect()->route('cart.index')->with('success', 'Produk berhasil dihapus dari keranjang.');
+    }
+
+    public function update(Request $request, Cart $cart)
+    {
+        $action = $request->input('action');
+    
+        if ($action === 'increase' && $cart->quantity < $cart->product->stock) {
+            $cart->quantity += 1;
+        } elseif ($action === 'decrease' && $cart->quantity > 1) {
+            $cart->quantity -= 1;
+        }
+    
+        $cart->save();
+    
+        return redirect()->route('cart.index')->with('success', 'Keranjang diperbarui.');
+    }
 }
